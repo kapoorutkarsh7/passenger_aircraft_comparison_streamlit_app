@@ -13,6 +13,8 @@ COMPANY_COLORS = {
     "Airbus": "#2F8FC4",
     "Boeing": "#D62728",
     "Embraer": "#2CA02C",
+    "de Havilland Canada": "#7B61A8",
+    "COMAC": "#F39C12",
 }
 
 FAMILY_COLORS = {
