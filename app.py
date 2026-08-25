@@ -19,100 +19,6 @@ st.set_page_config(
 )
 
 
-# # ============================================================
-# # CONSTANTS
-# # ============================================================
-
-# DATA_FILE = "aircrafts_data.csv"
-# JET_A_DENSITY_KG_L = 0.80
-# COMPANY_COLORS = {
-#     "Airbus": "#0879B8",
-#     "Boeing": "#C62828",
-# }
-
-# FAMILY_COLORS = {
-#     "A220": "#009E73",
-#     "A319": "#56B4E9",
-#     "A320": "#0072B2",
-#     "A330": "#0072B2",
-#     "A340": "#56B4E9",
-#     "A350": "#009E73",
-#     "A380": "#00A6A6",
-
-#     "717": "#D55E00",
-#     "737": "#E69F00",
-#     "747": "#F0E442",
-#     "757": "#CC79A7",
-#     "767": "#8C6BB1",
-#     "777": "#CC79A7",
-#     "787": "#7A3E9D",
-
-#     "E-Jets E2": "#009E73",
-# }
-
-
-# # ============================================================
-# # REQUIRED CSV COLUMNS
-# # ============================================================
-
-# REQUIRED_COLUMNS = [
-#     "Company",
-#     "Family",
-#     "Variant",
-#     "Generation",
-#     "Aircraft_Build_Type",
-#     "Typical_Seat_Config",
-#     "Seats",
-#     "Range_nm",
-#     "Range_km",
-#     "MTOW_t",
-#     "Orders",
-#     "Deliveries",
-#     "Fuel_kg_h",
-#     "Fuel_L_h",
-#     "Fuel_kg_seat_h",
-#     "Fuel_L_seat_h",
-#     "Backlog",
-#     "Delivery_pct",
-#     "Number_of_Engines",
-#     "Launch_Year",
-#     "Entry_Into_Service_Year",
-#     "List_Price_USD_M",
-#     "List_Price_Reference_Year",
-#     "Empty_Weight_t",
-#     "Max_Flight_Altitude_ft",
-#     "Technical_Data_Source",
-#     "Commercial_Data_Source",
-#     "Notes",
-# ]
-
-
-# # ============================================================
-# # NUMERIC COLUMNS
-# # ============================================================
-
-# NUMERIC_COLUMNS = [
-#     "Seats",
-#     "Range_nm",
-#     "Range_km",
-#     "MTOW_t",
-#     "Orders",
-#     "Deliveries",
-#     "Fuel_kg_h",
-#     "Fuel_L_h",
-#     "Fuel_kg_seat_h",
-#     "Fuel_L_seat_h",
-#     "Backlog",
-#     "Delivery_pct",
-#     "Number_of_Engines",
-#     "Launch_Year",
-#     "Entry_Into_Service_Year",
-#     "List_Price_USD_M",
-#     "List_Price_Reference_Year",
-#     "Empty_Weight_t",
-#     "Max_Flight_Altitude_ft",
-# ]
-
 # ============================================================
 # LOAD DATA
 # ============================================================
@@ -121,14 +27,12 @@ st.set_page_config(
 def load_data():
 
     if not os.path.exists(DATA_FILE):
-
         st.error(
             f"Could not find `{DATA_FILE}`. "
             "Make sure it is in the same directory as app2.py."
         )
 
         st.stop()
-
 
     try:
 
@@ -137,6 +41,9 @@ def load_data():
             na_values=[
                 "",
                 " ",
+                "n/a",
+                "na",
+                "not avaialble",
                 "NA",
                 "N/A",
                 "None",
@@ -145,7 +52,6 @@ def load_data():
         )
 
     except Exception as e:
-
         st.error(
             f"Could not read `{DATA_FILE}`:\n\n{e}"
         )
@@ -413,12 +319,21 @@ HOVER_TEMPLATE = """
 <extra></extra>
 """
 
+# ============================================================
+# STANDARD CHART LEGEND
+# ============================================================
+
+STANDARD_LEGEND = dict(
+    itemsizing="constant",
+    font=dict(size=12),
+)
+
 
 # ============================================================
 # SIDEBAR
 # ============================================================
 
-st.sidebar.title("✈️ Aircraft Filters")
+st.sidebar.title("✈️ Filters")
 
 
 # ============================================================
@@ -433,7 +348,7 @@ companies = sorted(
 )
 
 selected_companies = st.sidebar.multiselect(
-    "Company",
+    "Manufacturer",
     options=companies,
     default=companies,
 )
@@ -485,33 +400,41 @@ generations = sorted(
     .tolist()
 )
 
-selected_generations = st.sidebar.multiselect(
+with st.sidebar.expander(
     "Generation",
-    options=generations,
-    default=generations,
+    expanded=False,
+):
+
+    selected_generations = st.multiselect(
+        "Generation",
+        options=generations,
+        default=generations,
+        label_visibility="collapsed",
+    )
+
+
+
+# ============================================================
+# AIRCRAFT VARIANT FILTER
+# ============================================================
+
+all_variants = sorted(
+    df["Variant"]
+    .dropna()
+    .unique()
+    .tolist()
 )
-
-
-# ============================================================
-# VARIANT FILTER
-# ============================================================
 
 with st.sidebar.expander(
     "Aircraft Variant",
     expanded=False,
 ):
 
-    all_variants = sorted(
-        df["Variant"]
-        .dropna()
-        .unique()
-        .tolist()
-    )
-
     selected_variants = st.multiselect(
-        "Variants",
+        "Aircraft Variant",
         options=all_variants,
         default=all_variants,
+        label_visibility="collapsed",
     )
 
 
@@ -1110,7 +1033,6 @@ with tab_dashboard:
                 "Orders vs Deliveries",
                 "Fuel Burn vs Seating Capacity",
             ],
-
             horizontal_spacing=0.08,
             vertical_spacing=0.14,
         )
@@ -1130,18 +1052,12 @@ with tab_dashboard:
                 continue
 
             fig.add_trace(
-
                 go.Scatter(
-
                     x=d["Range_km"],
                     y=d["Seats"],
-
                     mode="markers+text",
-
                     text=d["Variant"],
-
                     textposition="top center",
-
                     textfont=dict(
                         size=8,
                     ),
@@ -1151,14 +1067,11 @@ with tab_dashboard:
                             d["MTOW_t"] / 7,
                             8,
                         ),
-
                         color=COMPANY_COLORS.get(
                             company,
                             "#666666",
                         ),
-
                         opacity=0.82,
-
                         line=dict(
                             color="white",
                             width=1,
@@ -1166,14 +1079,10 @@ with tab_dashboard:
                     ),
 
                     customdata=make_hover_data(d),
-
                     hovertemplate=HOVER_TEMPLATE,
-
                     name=company,
-
                     legendgroup=company,
                 ),
-
                 row=1,
                 col=1,
             )
@@ -1198,17 +1107,12 @@ with tab_dashboard:
 
                     x=d["MTOW_t"],
                     y=d["Seats"],
-
                     mode="markers+text",
-
                     text=d["Variant"],
-
                     textposition="top center",
-
                     textfont=dict(
                         size=8,
                     ),
-
                     marker=dict(
                         size=np.maximum(
                             d["Range_km"] / 150,
@@ -1229,16 +1133,11 @@ with tab_dashboard:
                     ),
 
                     customdata=make_hover_data(d),
-
                     hovertemplate=HOVER_TEMPLATE,
-
                     name=company,
-
                     legendgroup=company,
-
                     showlegend=False,
                 ),
-
                 row=1,
                 col=2,
             )
@@ -1263,13 +1162,9 @@ with tab_dashboard:
 
                     x=d["Orders"],
                     y=d["Deliveries"],
-
                     mode="markers+text",
-
                     text=d["Variant"],
-
                     textposition="top center",
-
                     textfont=dict(
                         size=8,
                     ),
@@ -1286,7 +1181,6 @@ with tab_dashboard:
                         ),
 
                         opacity=0.82,
-
                         line=dict(
                             color="white",
                             width=1,
@@ -1294,16 +1188,11 @@ with tab_dashboard:
                     ),
 
                     customdata=make_hover_data(d),
-
                     hovertemplate=HOVER_TEMPLATE,
-
                     name=company,
-
                     legendgroup=company,
-
                     showlegend=False,
                 ),
-
                 row=2,
                 col=1,
             )
@@ -1328,47 +1217,33 @@ with tab_dashboard:
 
                     x=d["Fuel_kg_h"],
                     y=d["Seats"],
-
                     mode="markers+text",
-
                     text=d["Variant"],
-
                     textposition="top center",
-
                     textfont=dict(
                         size=8,
                     ),
-
                     marker=dict(
                         size=np.maximum(
                             d["Range_km"] / 150,
                             8,
                         ),
-
                         color=COMPANY_COLORS.get(
                             company,
                             "#666666",
                         ),
-
                         opacity=0.82,
-
                         line=dict(
                             color="white",
                             width=1,
                         ),
                     ),
-
                     customdata=make_hover_data(d),
-
                     hovertemplate=HOVER_TEMPLATE,
-
                     name=company,
-
                     legendgroup=company,
-
                     showlegend=False,
                 ),
-
                 row=2,
                 col=2,
             )
@@ -1476,13 +1351,11 @@ with tab_performance:
 
 
     if len(filtered) == 0:
-
         st.warning(
             "No aircraft match the current filters."
         )
 
     else:
-
         p1, p2 = st.columns(2)
 
 
@@ -1491,9 +1364,7 @@ with tab_performance:
         # ----------------------------------------------------
 
         with p1:
-
             fig = go.Figure()
-
             for company in selected_companies:
 
                 d = filtered[
@@ -1504,22 +1375,15 @@ with tab_performance:
                     continue
 
                 fig.add_trace(
-
                     go.Scatter(
-
                         x=d["Range_km"],
                         y=d["Seats"],
-
                         mode="markers+text",
-
                         text=d["Variant"],
-
                         textposition="top center",
-
                         textfont=dict(
                             size=8,
                         ),
-
                         marker=dict(
                             size=np.maximum(
                                 d["MTOW_t"] / 7,
@@ -1531,26 +1395,19 @@ with tab_performance:
                                 "#666666",
                             ),
                         ),
-
                         customdata=make_hover_data(d),
-
                         hovertemplate=HOVER_TEMPLATE,
-
                         name=company,
                     )
                 )
 
-
             fig.update_layout(
                 title="Range vs Seating",
-
                 xaxis_title="Range (km)",
-
                 yaxis_title="Typical seats",
-
                 height=600,
-
                 template="plotly_white",
+                legend=STANDARD_LEGEND
             )
 
 
@@ -1583,13 +1440,9 @@ with tab_performance:
 
                         x=d["MTOW_t"],
                         y=d["Seats"],
-
                         mode="markers+text",
-
                         text=d["Variant"],
-
                         textposition="top center",
-
                         textfont=dict(
                             size=8,
                         ),
@@ -1599,7 +1452,6 @@ with tab_performance:
                                 d["Range_km"] / 150,
                                 8,
                             ),
-
                             color=COMPANY_COLORS.get(
                                 company,
                                 "#666666",
@@ -1607,9 +1459,7 @@ with tab_performance:
                         ),
 
                         customdata=make_hover_data(d),
-
                         hovertemplate=HOVER_TEMPLATE,
-
                         name=company,
                     )
                 )
@@ -1617,14 +1467,11 @@ with tab_performance:
 
             fig.update_layout(
                 title="MTOW vs Seating",
-
                 xaxis_title="MTOW (tonnes)",
-
                 yaxis_title="Typical seats",
-
                 height=600,
-
                 template="plotly_white",
+                legend=STANDARD_LEGEND,
             )
 
 
@@ -1662,33 +1509,24 @@ with tab_performance:
 
                     x=d["Range_km"],
                     y=d["MTOW_t"],
-
                     mode="markers+text",
-
                     text=d["Variant"],
-
                     textposition="top center",
-
                     textfont=dict(
                         size=8,
                     ),
-
                     marker=dict(
                         size=np.maximum(
                             d["Seats"] / 10,
                             8,
                         ),
-
                         color=COMPANY_COLORS.get(
                             company,
                             "#666666",
                         ),
                     ),
-
                     customdata=make_hover_data(d),
-
                     hovertemplate=HOVER_TEMPLATE,
-
                     name=company,
                 )
             )
@@ -1696,14 +1534,11 @@ with tab_performance:
 
         fig.update_layout(
             title="Range vs MTOW — bubble size = seats",
-
             xaxis_title="Range (km)",
-
             yaxis_title="MTOW (tonnes)",
-
             height=650,
-
             template="plotly_white",
+            legend=STANDARD_LEGEND,
         )
 
 
@@ -1768,17 +1603,12 @@ with tab_fuel:
 
                         x=d["Fuel_kg_h"],
                         y=d["Seats"],
-
                         mode="markers+text",
-
                         text=d["Variant"],
-
                         textposition="top center",
-
                         textfont=dict(
                             size=8,
                         ),
-
                         marker=dict(
                             size=np.maximum(
                                 d["Range_km"] / 150,
@@ -1790,11 +1620,8 @@ with tab_fuel:
                                 "#666666",
                             ),
                         ),
-
                         customdata=make_hover_data(d),
-
                         hovertemplate=HOVER_TEMPLATE,
-
                         name=company,
                     )
                 )
@@ -1802,13 +1629,9 @@ with tab_fuel:
 
             fig.update_layout(
                 title="Absolute Fuel Burn",
-
                 xaxis_title="Fuel burn (kg/hour)",
-
                 yaxis_title="Typical seats",
-
                 height=600,
-
                 template="plotly_white",
             )
 
@@ -1844,17 +1667,12 @@ with tab_fuel:
 
                         x=d["Fuel_kg_seat_h"],
                         y=d["Range_km"],
-
                         mode="markers+text",
-
                         text=d["Variant"],
-
                         textposition="top center",
-
                         textfont=dict(
                             size=8,
                         ),
-
                         marker=dict(
                             size=np.maximum(
                                 d["Seats"] / 10,
@@ -1866,11 +1684,8 @@ with tab_fuel:
                                 "#666666",
                             ),
                         ),
-
                         customdata=make_hover_data(d),
-
                         hovertemplate=HOVER_TEMPLATE,
-
                         name=company,
                     )
                 )
@@ -1878,13 +1693,9 @@ with tab_fuel:
 
             fig.update_layout(
                 title="Fuel Efficiency vs Range",
-
                 xaxis_title="Fuel burn (kg / seat / hour)",
-
                 yaxis_title="Range (km)",
-
                 height=600,
-
                 template="plotly_white",
             )
 
@@ -1928,19 +1739,13 @@ with tab_fuel:
                 go.Scatter(
 
                     x=fuel_l_seat,
-
                     y=d["Range_km"],
-
                     mode="markers+text",
-
                     text=d["Variant"],
-
                     textposition="top center",
-
                     textfont=dict(
                         size=8,
                     ),
-
                     marker=dict(
                         size=np.maximum(
                             d["MTOW_t"] / 7,
@@ -1954,9 +1759,7 @@ with tab_fuel:
                     ),
 
                     customdata=make_hover_data(d),
-
                     hovertemplate=HOVER_TEMPLATE,
-
                     name=company,
                 )
             )
@@ -1964,13 +1767,9 @@ with tab_fuel:
 
         fig.update_layout(
             title="Fuel Burn per Seat vs Range",
-
             xaxis_title="Fuel burn (L / seat / hour)",
-
             yaxis_title="Range (km)",
-
             height=600,
-
             template="plotly_white",
         )
 
@@ -2030,15 +1829,11 @@ with tab_commercial:
                         y=d["Deliveries"],
 
                         mode="markers+text",
-
                         text=d["Variant"],
-
                         textposition="top center",
-
                         textfont=dict(
                             size=8,
                         ),
-
                         marker=dict(
                             size=np.maximum(
                                 d["MTOW_t"] / 7,
@@ -2050,11 +1845,8 @@ with tab_commercial:
                                 "#666666",
                             ),
                         ),
-
                         customdata=make_hover_data(d),
-
                         hovertemplate=HOVER_TEMPLATE,
-
                         name=company,
                     )
                 )
@@ -2067,15 +1859,11 @@ with tab_commercial:
 
 
             fig.add_shape(
-
                 type="line",
-
                 x0=0,
                 y0=0,
-
                 x1=maximum,
                 y1=maximum,
-
                 line=dict(
                     color="gray",
                     dash="dash",
@@ -2085,13 +1873,9 @@ with tab_commercial:
 
             fig.update_layout(
                 title="Orders vs Deliveries",
-
                 xaxis_title="Orders",
-
                 yaxis_title="Deliveries",
-
                 height=600,
-
                 template="plotly_white",
             )
 
@@ -2125,11 +1909,8 @@ with tab_commercial:
                 go.Bar(
 
                     x=backlog["Backlog"],
-
                     y=backlog["Variant"],
-
                     orientation="h",
-
                     marker_color=[
                         COMPANY_COLORS.get(
                             company,
@@ -2138,11 +1919,8 @@ with tab_commercial:
                         for company
                         in backlog["Company"]
                     ],
-
                     text=backlog["Backlog"],
-
                     textposition="outside",
-
                     hovertemplate=(
                         "<b>%{y}</b><br>"
                         "Backlog: %{x:,.0f}"
@@ -2154,11 +1932,8 @@ with tab_commercial:
 
             fig.update_layout(
                 title="Aircraft Backlog",
-
                 xaxis_title="Aircraft remaining to deliver",
-
                 height=600,
-
                 template="plotly_white",
             )
 
@@ -2293,35 +2068,25 @@ with tab_characteristics:
                     go.Scatter(
 
                         x=d["MTOW_t"],
-
                         y=d["Number_of_Engines"],
-
                         mode="markers+text",
-
                         text=d["Variant"],
-
                         textposition="top center",
-
                         textfont=dict(
                             size=8,
                         ),
-
                         marker=dict(
                             size=np.maximum(
                                 d["Seats"] / 10,
                                 8,
                             ),
-
                             color=COMPANY_COLORS.get(
                                 company,
                                 "#666666",
                             ),
                         ),
-
                         customdata=make_hover_data(d),
-
                         hovertemplate=HOVER_TEMPLATE,
-
                         name=company,
                     )
                 )
@@ -2329,16 +2094,11 @@ with tab_characteristics:
 
             fig.update_layout(
                 title="Number of Engines vs MTOW",
-
                 xaxis_title="MTOW (tonnes)",
-
                 yaxis_title="Number of engines",
-
                 height=600,
-
                 template="plotly_white",
             )
-
 
             st.plotly_chart(
                 fig,
@@ -2378,15 +2138,10 @@ with tab_characteristics:
                     go.Scatter(
 
                         x=d["MTOW_t"],
-
                         y=d["Empty_Weight_t"],
-
                         mode="markers+text",
-
                         text=d["Variant"],
-
                         textposition="top center",
-
                         textfont=dict(
                             size=8,
                         ),
@@ -2404,9 +2159,7 @@ with tab_characteristics:
                         ),
 
                         customdata=make_hover_data(d),
-
                         hovertemplate=HOVER_TEMPLATE,
-
                         name=company,
                     )
                 )
@@ -2414,13 +2167,9 @@ with tab_characteristics:
 
             fig.update_layout(
                 title="Empty Weight vs MTOW",
-
                 xaxis_title="MTOW (tonnes)",
-
                 yaxis_title="Empty weight (tonnes)",
-
                 height=600,
-
                 template="plotly_white",
             )
 
@@ -2466,35 +2215,25 @@ with tab_characteristics:
                 go.Scatter(
 
                     x=d["Launch_Year"],
-
                     y=d["Range_km"],
-
                     mode="markers+text",
-
                     text=d["Variant"],
-
                     textposition="top center",
-
                     textfont=dict(
                         size=8,
                     ),
-
                     marker=dict(
                         size=np.maximum(
                             d["Seats"] / 10,
                             8,
                         ),
-
                         color=COMPANY_COLORS.get(
                             company,
                             "#666666",
                         ),
                     ),
-
                     customdata=make_hover_data(d),
-
                     hovertemplate=HOVER_TEMPLATE,
-
                     name=company,
                 )
             )
@@ -2502,13 +2241,9 @@ with tab_characteristics:
 
         fig.update_layout(
             title="Launch Year vs Range",
-
             xaxis_title="Launch year",
-
             yaxis_title="Range (km)",
-
             height=650,
-
             template="plotly_white",
         )
 
@@ -2656,41 +2391,32 @@ with tab_rankings:
                 .reset_index(drop=True)
             )
 
-
             rank.insert(
                 0,
                 "Rank",
                 range(1, len(rank) + 1),
             )
 
-
             st.dataframe(
-
                 rank,
-
                 column_config={
-
                     "Rank":
                         st.column_config.NumberColumn(
                             "Rank",
                             format="%d",
                         ),
-
                     "Range_nm":
                         st.column_config.NumberColumn(
                             "Range (nm)",
                             format="%,.0f",
                         ),
-
                     "Range_km":
                         st.column_config.NumberColumn(
                             "Range (km)",
                             format="%,.0f",
                         ),
                 },
-
                 hide_index=True,
-
                 use_container_width=True,
             )
 
@@ -2735,13 +2461,11 @@ with tab_rankings:
                 rank,
 
                 column_config={
-
                     "Rank":
                         st.column_config.NumberColumn(
                             "Rank",
                             format="%d",
                         ),
-
                     "Seats":
                         st.column_config.NumberColumn(
                             "Seats",
@@ -2750,7 +2474,6 @@ with tab_rankings:
                 },
 
                 hide_index=True,
-
                 use_container_width=True,
             )
 
@@ -2794,11 +2517,8 @@ with tab_rankings:
 
 
             st.dataframe(
-
                 rank,
-
                 column_config={
-
                     "Rank":
                         st.column_config.NumberColumn(
                             "Rank",
@@ -2811,9 +2531,7 @@ with tab_rankings:
                             format="%.1f t",
                         ),
                 },
-
                 hide_index=True,
-
                 use_container_width=True,
             )
 
@@ -2827,7 +2545,6 @@ with tab_rankings:
             st.markdown(
                 "### ⛽ Fuel efficiency ranking"
             )
-
 
             rank = (
                 filtered[
@@ -2848,53 +2565,42 @@ with tab_rankings:
                 .reset_index(drop=True)
             )
 
-
             rank.insert(
                 0,
                 "Rank",
                 range(1, len(rank) + 1),
             )
 
-
             st.dataframe(
-
                 rank,
-
                 column_config={
-
                     "Rank":
                         st.column_config.NumberColumn(
                             "Rank",
                             format="%d",
                         ),
-
                     "Seats":
                         st.column_config.NumberColumn(
                             "Seats",
                             format="%,.0f",
                         ),
-
                     "Fuel_kg_h":
                         st.column_config.NumberColumn(
                             "Fuel kg/hr",
                             format="%,.0f",
                         ),
-
                     "Fuel_L_h":
                         st.column_config.NumberColumn(
                             "Fuel L/hr",
                             format="%,.0f",
                         ),
-
                     "Fuel_kg_seat_h":
                         st.column_config.NumberColumn(
                             "Fuel kg/seat/hr",
                             format="%.2f",
                         ),
                 },
-
                 hide_index=True,
-
                 use_container_width=True,
             )
 
@@ -2938,42 +2644,34 @@ with tab_rankings:
         st.dataframe(
 
             rank,
-
             column_config={
-
                 "Rank":
                     st.column_config.NumberColumn(
                         "Rank",
                         format="%d",
                     ),
-
                 "Orders":
                     st.column_config.NumberColumn(
                         "Orders",
                         format="%,.0f",
                     ),
-
                 "Deliveries":
                     st.column_config.NumberColumn(
                         "Deliveries",
                         format="%,.0f",
                     ),
-
                 "Backlog":
                     st.column_config.NumberColumn(
                         "Backlog",
                         format="%,.0f",
                     ),
-
                 "Delivery_pct":
                     st.column_config.NumberColumn(
                         "Delivery %",
                         format="%.1f%%",
                     ),
             },
-
             hide_index=True,
-
             use_container_width=True,
         )
 
@@ -3078,14 +2776,10 @@ with tab_data:
             chosen = st.multiselect(
 
                 f"{group_name} columns",
-
                 options=available,
-
                 default=defaults,
-
                 key=f"columns_{group_name}",
             )
-
 
             selected_columns.extend(chosen)
 
@@ -3100,15 +2794,12 @@ with tab_data:
         )
     )
 
-
     if not selected_columns:
-
         st.warning(
             "Select at least one column."
         )
 
     else:
-
         display_df = filtered[
             selected_columns
         ].copy()
@@ -3239,13 +2930,9 @@ with tab_data:
         st.dataframe(
 
             display_df,
-
             column_config=column_config,
-
             hide_index=True,
-
             use_container_width=True,
-
             height=650,
         )
 
@@ -3299,15 +2986,11 @@ with tab_data:
         st.download_button(
 
             label="⬇️ Download filtered CSV",
-
             data=filtered_csv,
-
             file_name=(
                 "aircrafts_data_filtered.csv"
             ),
-
             mime="text/csv",
-
             use_container_width=True,
         )
 
@@ -3315,17 +2998,12 @@ with tab_data:
     with d2:
 
         st.download_button(
-
             label="⬇️ Download complete CSV",
-
             data=complete_csv,
-
             file_name=(
                 "aircrafts_data_complete.csv"
             ),
-
             mime="text/csv",
-
             use_container_width=True,
         )
 
@@ -3347,11 +3025,9 @@ with tab_sources:
 
 The CSV is the **single source of truth** for the application.
 
-No aircraft-specific technical or commercial data are
-hard-coded in `app2.py`.
+No aircraft-specific technical or commercial data are hard-coded in `app2.py`.
 
-This means you can update `aircrafts_data.csv` without changing
-the application code.
+This means you can update `aircrafts_data.csv` without changing the application code.
 
 
 ---
@@ -3364,20 +3040,16 @@ The conversion used is:
 
 **1 nautical mile = 1.852 km**
 
-The dataset's `Range_km` field is retained directly from the
-CSV rather than being silently replaced by an app-side
-calculation.
+The dataset's `Range_km` field is retained directly from the CSV rather than being silently replaced by an app-side calculation.
 
 
 ---
 
 ## Seating
 
-The `Seats` field represents the typical configuration
-specified in the CSV.
+The `Seats` field represents the typical configuration specified in the CSV.
 
-The associated `Typical_Seat_Config` field identifies the
-configuration basis, e.g. 3-class or 2-class.
+The associated `Typical_Seat_Config` field identifies the configuration basis, e.g. 3-class or 2-class.
 
 Actual airline configurations can vary substantially.
 
@@ -3430,27 +3102,20 @@ The principal efficiency metric is:
 
 `Fuel_kg_seat_h = Fuel_kg_h / Seats`
 
-A lower number indicates lower estimated fuel consumption
-per available seat per flight hour.
+A lower number indicates lower estimated fuel consumption per available seat per flight hour.
 
-This is a **comparative indicator**, not a measure of actual
-trip fuel per passenger.
+This is a **comparative indicator**, not a measure of actual trip fuel per passenger.
 
 
 ---
 
 ## Orders / deliveries
 
-Orders, deliveries and backlog are carried through from the
-CSV.
+Orders, deliveries and backlog are carried through from the CSV.
 
-Backlog is:
+`Backlog` = `Orders - Deliveries`
 
-`Orders - Deliveries`
-
-Delivery percentage is:
-
-`Deliveries / Orders × 100`
+`Delivery percentage` = `Deliveries / Orders × 100`
 
 
 ---
@@ -3473,27 +3138,23 @@ Airline purchase prices can differ substantially because of:
 - support packages
 - other commercial terms
 
-`List_Price_Reference_Year` identifies the year associated
-with the list-price figure.
+`List_Price_Reference_Year` identifies the year associated with the list-price figure.
 
 
 ---
 
 ## Empty weight
 
-Empty-weight definitions can differ between aircraft
-manufacturers and sources.
+Empty-weight definitions can differ between aircraft manufacturers and sources.
 
-Consequently, these values are best used for broad comparison
-rather than as perfectly accounting-equivalent measures.
+Consequently, these values are best used for broad comparison rather than as perfectly accounting-equivalent measures.
 
 
 ---
 
 ## Maximum altitude
 
-Maximum flight altitude represents the maximum operating /
-published altitude associated with the aircraft specification.
+Maximum flight altitude represents the maximum operating / published altitude associated with the aircraft specification.
 
 It should not be interpreted as a typical cruise altitude.
 
@@ -3502,12 +3163,9 @@ It should not be interpreted as a typical cruise altitude.
 
 ## Historical aircraft
 
-For older aircraft such as the 747 and A340, some historical
-fields are inherently less complete than for current aircraft.
+For older aircraft such as the 747 and A340, some historical fields are inherently less complete than for current aircraft.
 
-Where a reliable public value could not be established, the
-CSV intentionally contains a blank value rather than an
-invented estimate.
+Where a reliable public value could not be established, the CSV intentionally contains a blank value rather than an invented estimate.
 
 
 ---
@@ -3562,30 +3220,23 @@ scope of this comparison.
 
 **Airbus**
 
-Airbus aircraft technical specifications and historical
-aircraft information were used for Airbus variants.
+Airbus aircraft technical specifications and historical aircraft information were used for Airbus variants.
 
 **Boeing**
 
-Boeing aircraft technical specifications and historical
-aircraft information were used for Boeing variants.
+Boeing aircraft technical specifications and historical aircraft information were used for Boeing variants.
 
 **Historical commercial information**
 
-Historical list-price information is identified separately
-from technical specifications and should not be confused with
+Historical list-price information is identified separately from technical specifications and should not be confused with
 actual transaction prices.
 
 
 ### Important interpretation note
 
-Aircraft specifications change depending on configuration,
-engine option, MTOW variant and source publication date.
-
-Where manufacturer documentation gives different values for
-different configurations or revisions, the CSV should be
-treated as a **comparative analytical dataset**, not as an
-engineering certification database.
+Aircraft specifications change depending on configuration, engine option, MTOW variant and source publication date.
+Where manufacturer documentation gives different values for different configurations or revisions, the CSV should be 
+treated as a **comparative analytical dataset**, not as an engineering certification database.
 """
     )
 
@@ -3597,11 +3248,11 @@ engineering certification database.
 st.divider()
 
 st.caption(
-    "Range conversion: 1 nautical mile = 1.852 km. "
-    "Fuel litres calculated using an assumed Jet-A density "
-    "of 0.80 kg/L. Fuel-flow values are representative "
-    "estimates and should not be interpreted as certified "
-    "performance."
+    "Range conversion: 1 nautical mile = 1.852 km. Fuel litres calculated using an assumed Jet-A density of 0.80 kg/L." 
+)
+
+st.caption(
+    "Fuel-flow values are representative estimates and should not be interpreted as certified performance."
 )
 
 st.caption(
